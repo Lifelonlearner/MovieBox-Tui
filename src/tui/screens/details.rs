@@ -421,7 +421,7 @@ pub fn draw(frame: &mut Frame, area: Rect, state: &mut AppState, theme: &Theme) 
                             } else if let Ok(protocol) = picker.new_protocol(
                                 (**img).clone(),
                                 poster_area.into(),
-                                ratatui_image::Resize::Fit(None),
+                                ratatui_image::Resize::Fit(Some(image::imageops::FilterType::Lanczos3)),
                             ) {
                                 state.poster_protocol = Some((poster_area, protocol));
                                 if let Some((_, p)) = &state.poster_protocol {
@@ -432,7 +432,7 @@ pub fn draw(frame: &mut Frame, area: Rect, state: &mut AppState, theme: &Theme) 
                         } else if let Ok(protocol) = picker.new_protocol(
                             (**img).clone(),
                             poster_area.into(),
-                            ratatui_image::Resize::Fit(None),
+                            ratatui_image::Resize::Fit(Some(image::imageops::FilterType::Lanczos3)),
                         ) {
                             state.poster_protocol = Some((poster_area, protocol));
                             if let Some((_, p)) = &state.poster_protocol {

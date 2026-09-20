@@ -357,7 +357,7 @@ pub async fn decode_poster(bytes: Vec<u8>) -> Option<Arc<image::DynamicImage>> {
         let downscaled = if img.width().max(img.height()) <= MAX_DIM {
             img
         } else {
-            img.resize(MAX_DIM, MAX_DIM, image::imageops::FilterType::Triangle)
+            img.resize(MAX_DIM, MAX_DIM, image::imageops::FilterType::Lanczos3)
         };
         Some(Arc::new(downscaled))
     })

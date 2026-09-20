@@ -1520,7 +1520,7 @@ pub fn draw(frame: &mut Frame, area: Rect, state: &mut AppState, theme: &Theme) 
                                 if let Ok(proto) = picker.new_protocol(
                                     (**img).clone(),
                                     size,
-                                    ratatui_image::Resize::Fit(None),
+                                    ratatui_image::Resize::Fit(Some(image::imageops::FilterType::Lanczos3)),
                                 ) {
                                     state
                                         .search_poster_protocols
