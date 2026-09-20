@@ -1402,7 +1402,7 @@ pub fn draw(frame: &mut Frame, area: Rect, state: &mut AppState, theme: &Theme) 
             && !suggestions_open
             && !update_active
             && !state.show_settings_popup
-            && area.height >= 26
+            && area.height >= 20
         {
             render_discover_landing(frame, vertical_chunks[rows.favorites], state, theme);
         }
@@ -2675,6 +2675,14 @@ mod tests {
             }
             rendered.push('\n');
         }
+        println!("--- RENDERED 80x24 HOME SCREEN ---");
+        println!("{}", rendered);
+        println!("----------------------------------");
+        assert!(rendered.contains("Discover Categories"));
+        assert!(rendered.contains("Trending Now"));
+        assert!(rendered.contains("Top Rated Series"));
+        assert!(rendered.contains("Latest Releases"));
+        assert!(rendered.contains("Most Watched"));
         assert!(rendered.contains("help"));
         assert!(rendered.contains("history"));
         assert!(rendered.contains("Inception"));
@@ -2721,6 +2729,14 @@ mod tests {
             }
             rendered.push('\n');
         }
+        println!("--- RENDERED 80x24 HOME SCREEN ---");
+        println!("{}", rendered);
+        println!("----------------------------------");
+        assert!(rendered.contains("Discover Categories"));
+        assert!(rendered.contains("Trending Now"));
+        assert!(rendered.contains("Top Rated Series"));
+        assert!(rendered.contains("Latest Releases"));
+        assert!(rendered.contains("Most Watched"));
         assert!(rendered.contains("▼ (+4 more)"));
     }
 
@@ -3085,6 +3101,14 @@ mod tests {
             }
             rendered.push('\n');
         }
+        println!("--- RENDERED 80x24 HOME SCREEN ---");
+        println!("{}", rendered);
+        println!("----------------------------------");
+        assert!(rendered.contains("Discover Categories"));
+        assert!(rendered.contains("Trending Now"));
+        assert!(rendered.contains("Top Rated Series"));
+        assert!(rendered.contains("Latest Releases"));
+        assert!(rendered.contains("Most Watched"));
         assert!(rendered.contains("Favorites"));
         assert!(!rendered.contains("★"));
         assert!(rendered.contains("Favorite Movie 0"));
@@ -3133,6 +3157,14 @@ mod tests {
             }
             rendered.push('\n');
         }
+        println!("--- RENDERED 80x24 HOME SCREEN ---");
+        println!("{}", rendered);
+        println!("----------------------------------");
+        assert!(rendered.contains("Discover Categories"));
+        assert!(rendered.contains("Trending Now"));
+        assert!(rendered.contains("Top Rated Series"));
+        assert!(rendered.contains("Latest Releases"));
+        assert!(rendered.contains("Most Watched"));
 
         assert!(rendered.contains("Favorites"));
         assert!(!rendered.contains("*  Favorites"));
@@ -3191,6 +3223,14 @@ mod tests {
             }
             rendered.push('\n');
         }
+        println!("--- RENDERED 80x24 HOME SCREEN ---");
+        println!("{}", rendered);
+        println!("----------------------------------");
+        assert!(rendered.contains("Discover Categories"));
+        assert!(rendered.contains("Trending Now"));
+        assert!(rendered.contains("Top Rated Series"));
+        assert!(rendered.contains("Latest Releases"));
+        assert!(rendered.contains("Most Watched"));
 
         assert!(rendered.contains("Resume"));
         assert!(rendered.contains("Favorites"));
@@ -3280,6 +3320,14 @@ mod tests {
             }
             rendered.push('\n');
         }
+        println!("--- RENDERED 80x24 HOME SCREEN ---");
+        println!("{}", rendered);
+        println!("----------------------------------");
+        assert!(rendered.contains("Discover Categories"));
+        assert!(rendered.contains("Trending Now"));
+        assert!(rendered.contains("Top Rated Series"));
+        assert!(rendered.contains("Latest Releases"));
+        assert!(rendered.contains("Most Watched"));
         assert!(rendered.contains('❯'));
         assert!(rendered.contains("Search movies, series & anime…"));
         assert!(rendered.contains("[MovieBox"));
@@ -3330,6 +3378,14 @@ mod tests {
             }
             rendered.push('\n');
         }
+        println!("--- RENDERED 80x24 HOME SCREEN ---");
+        println!("{}", rendered);
+        println!("----------------------------------");
+        assert!(rendered.contains("Discover Categories"));
+        assert!(rendered.contains("Trending Now"));
+        assert!(rendered.contains("Top Rated Series"));
+        assert!(rendered.contains("Latest Releases"));
+        assert!(rendered.contains("Most Watched"));
 
         assert!(rendered.contains("Favorites"));
         assert!(rendered.contains("Interstellar"));
@@ -3364,6 +3420,14 @@ mod tests {
             }
             rendered.push('\n');
         }
+        println!("--- RENDERED 80x24 HOME SCREEN ---");
+        println!("{}", rendered);
+        println!("----------------------------------");
+        assert!(rendered.contains("Discover Categories"));
+        assert!(rendered.contains("Trending Now"));
+        assert!(rendered.contains("Top Rated Series"));
+        assert!(rendered.contains("Latest Releases"));
+        assert!(rendered.contains("Most Watched"));
 
         assert!(rendered.contains("[Enter] Search"));
     }
