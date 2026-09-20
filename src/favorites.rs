@@ -118,7 +118,10 @@ impl FavoritesManager {
     }
 
     pub fn save(&self) {
-        if std::env::var("MOVIEBOX_INCOGNITO").is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true")) {
+        if std::env::var_os("CARGO_MANIFEST_DIR").is_some()
+            || std::env::var("MOVIEBOX_TEST").is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+            || std::env::var("MOVIEBOX_INCOGNITO").is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+        {
             return;
         }
         if let Some(path) = Self::favorites_file_path() {

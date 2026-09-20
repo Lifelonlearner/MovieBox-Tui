@@ -206,6 +206,12 @@ pub fn load() -> Config {
 }
 
 pub fn save(config: &Config) {
+    if std::env::var_os("CARGO_MANIFEST_DIR").is_some()
+        || std::env::var("MOVIEBOX_TEST").is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+    {
+        let _ = config;
+        return;
+    }
     let Some(path) = config_path() else {
         return;
     };
@@ -269,6 +275,12 @@ pub fn load_addons() -> Vec<InstalledAddon> {
 }
 
 pub fn save_addons(addons: &[InstalledAddon]) {
+    if std::env::var_os("CARGO_MANIFEST_DIR").is_some()
+        || std::env::var("MOVIEBOX_TEST").is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+    {
+        let _ = addons;
+        return;
+    }
     let Some(path) = addons_path() else {
         return;
     };

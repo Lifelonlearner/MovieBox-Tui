@@ -522,6 +522,7 @@ async fn test_f_key_toggles_favorite_on_home_results() {
     app.handle_action(Action::ToggleFavorite).await;
 
     assert!(app.state().favorites.is_favorite(&identity));
+    app.state_mut().favorites.clear();
 }
 
 #[tokio::test]
