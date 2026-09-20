@@ -1,4 +1,4 @@
-pub mod tracker;
+﻿pub mod tracker;
 
 use std::{path::Path, process::Command};
 
@@ -627,6 +627,8 @@ fn vlc_command(
             .arg(format!("--height={height}"));
     }
     command.arg("--play-and-exit");
+    command.arg("--no-plugins-cache");
+    command.arg("--no-stats");
 
     if let Some(start) = resume_seconds {
         if start > 0 {

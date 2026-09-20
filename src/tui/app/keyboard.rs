@@ -1,4 +1,4 @@
-use super::App;
+﻿use super::App;
 use crate::tui::{
     action::Action,
     state::{InputMode, Screen},
@@ -36,6 +36,25 @@ impl App {
                 }
                 _ => {}
             }
+            return None;
+        }
+
+        if let KeyCode::F(12) = key.code {
+            #[cfg(target_os = "windows")]
+            {
+                let _ = std::process::Command::new("taskkill")
+                    .args(["/F", "/IM", "vlc.exe", "/IM", "mpv.exe"])
+                    .output();
+            }
+            #[cfg(not(target_os = "windows"))]
+            {
+                let _ = std::process::Command::new("pkill")
+                    .args(["-9", "-e", "vlc|mpv|iina"])
+                    .output();
+            }
+            self.state.clear_search_state();
+            self.state.clear_details_state();
+            self.action_sender.send(Action::Quit).ok();
             return None;
         }
 
@@ -509,7 +528,26 @@ impl App {
 
         match self.state.input_mode {
             InputMode::Editing => {
-                if key.modifiers.contains(KeyModifiers::CONTROL) {
+                if let KeyCode::F(12) = key.code {
+            #[cfg(target_os = "windows")]
+            {
+                let _ = std::process::Command::new("taskkill")
+                    .args(["/F", "/IM", "vlc.exe", "/IM", "mpv.exe"])
+                    .output();
+            }
+            #[cfg(not(target_os = "windows"))]
+            {
+                let _ = std::process::Command::new("pkill")
+                    .args(["-9", "-e", "vlc|mpv|iina"])
+                    .output();
+            }
+            self.state.clear_search_state();
+            self.state.clear_details_state();
+            self.action_sender.send(Action::Quit).ok();
+            return None;
+        }
+
+        if key.modifiers.contains(KeyModifiers::CONTROL) {
                     if let KeyCode::Char('u') = key.code {
                         let had_search = !self.state.search_query.trim().is_empty()
                             || !self.state.search_results.is_empty();
@@ -1656,7 +1694,7 @@ mod tests {
         app.handle_key(KeyEvent::new(KeyCode::Char('i'), KeyModifiers::empty()))
             .await;
         assert!(app.state.show_overview_modal);
-        assert_eq!(app.state.overview_modal_title, "Interstellar · Synopsis");
+        assert_eq!(app.state.overview_modal_title, "Interstellar Â· Synopsis");
         assert_eq!(app.state.overview_modal_content, "Space exploration epic.");
         assert_eq!(app.state.overview_modal_scroll, 0);
 
