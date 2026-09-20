@@ -227,12 +227,20 @@ impl App {
             }
 
             if is_dash {
-                let Some(ytdlp_bin) = crate::player::find_in_path("yt-dlp") else {
+                let Some(ytdlp_bin) = crate::player::find_ytdlp() else {
                     sender
                         .send(Action::DownloadFailed(yt_dlp_missing_guidance()))
                         .ok();
                     return;
                 };
+
+                let ffmpeg_bin_opt = crate::player::find_ffmpeg();
+                if ffmpeg_bin_opt.is_none() {
+                    sender
+                        .send(Action::DownloadFailed(crate::download::ffmpeg_missing_guidance()))
+                        .ok();
+                    return;
+                }
 
                 let mut cmd = tokio::process::Command::new(ytdlp_bin);
                 for (k, v) in &headers {
@@ -245,8 +253,12 @@ impl App {
                 cmd.arg("-f")
                     .arg("bestvideo+bestaudio/best")
                     .arg("--newline")
-                    .arg("--part")
-                    .arg("-o")
+                    .arg("--part");
+                if let Some(ffmpeg_bin) = &ffmpeg_bin_opt {
+                    cmd.arg("--ffmpeg-location").arg(ffmpeg_bin);
+                    cmd.arg("--merge-output-format").arg("mp4");
+                }
+                cmd.arg("-o")
                     .arg(&destination)
                     .arg("--force-overwrites")
                     .arg(&link);
@@ -352,10 +364,23 @@ impl App {
                 match status {
                     Ok(s) if s.success() => {
                         sender
-                            .send(Action::DownloadCompleted(
-                                destination.to_string_lossy().into_owned(),
+                            .send(Action::UpdateDownload(
+                                Some(99.0),
+                                Some("Merging audio & video (FFmpeg)...".to_string()),
                             ))
                             .ok();
+                        match crate::download::post_process_download(&target_dir, &base_name, &destination).await {
+                            Ok(final_path) => {
+                                sender
+                                    .send(Action::DownloadCompleted(
+                                        final_path.to_string_lossy().into_owned(),
+                                    ))
+                                    .ok();
+                            }
+                            Err(err) => {
+                                sender.send(Action::DownloadFailed(err)).ok();
+                            }
+                        }
                     }
                     Ok(s) => {
                         if cancel.load(std::sync::atomic::Ordering::Relaxed) {
@@ -436,11 +461,18 @@ impl App {
 
                 match result {
                     Ok(crate::download::DownloadOutcome::Completed { .. }) => {
-                        sender
-                            .send(Action::DownloadCompleted(
-                                destination.to_string_lossy().into_owned(),
-                            ))
-                            .ok();
+                        match crate::download::post_process_download(&target_dir, &base_name, &destination).await {
+                            Ok(final_path) => {
+                                sender
+                                    .send(Action::DownloadCompleted(
+                                        final_path.to_string_lossy().into_owned(),
+                                    ))
+                                    .ok();
+                            }
+                            Err(err) => {
+                                sender.send(Action::DownloadFailed(err)).ok();
+                            }
+                        }
                     }
                     Ok(crate::download::DownloadOutcome::Paused { .. }) => {
                         sender

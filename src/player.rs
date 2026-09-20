@@ -1009,6 +1009,228 @@ pub fn windows_vlc_candidate_paths(
     candidates
 }
 
+
+pub fn windows_ffmpeg_candidate_paths(
+    localappdata: Option<&str>,
+    appdata: Option<&str>,
+    userprofile: Option<&Path>,
+) -> Vec<String> {
+    let mut candidates = Vec::new();
+
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(parent) = exe_path.parent() {
+            for name in &["ffmpeg.exe", r"ffmpeg\ffmpeg.exe", r"ffmpeg\bin\ffmpeg.exe", r"bin\ffmpeg.exe"] {
+                candidates.push(parent.join(name).to_string_lossy().into_owned());
+            }
+        }
+    }
+    if let Ok(cwd) = std::env::current_dir() {
+        for name in &["ffmpeg.exe", r"ffmpeg\ffmpeg.exe", r"ffmpeg\bin\ffmpeg.exe", r"bin\ffmpeg.exe"] {
+            candidates.push(cwd.join(name).to_string_lossy().into_owned());
+        }
+    }
+
+    if let Some(local) = localappdata {
+        candidates.push(format!(r"{local}\Microsoft\WinGet\Links\ffmpeg.exe"));
+        candidates.push(format!(r"{local}\Programs\ffmpeg\bin\ffmpeg.exe"));
+        candidates.push(format!(r"{local}\Programs\ffmpeg\ffmpeg.exe"));
+        candidates.push(format!(r"{local}\Programs\FFmpeg\bin\ffmpeg.exe"));
+
+        let packages_dir = std::path::PathBuf::from(format!(r"{local}\Microsoft\WinGet\Packages"));
+        if packages_dir.is_dir() {
+            if let Ok(entries) = std::fs::read_dir(&packages_dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    let name = path
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("")
+                        .to_ascii_lowercase();
+                    if name.contains("ffmpeg") && path.is_dir() {
+                        candidates.push(path.join("ffmpeg.exe").to_string_lossy().into_owned());
+                        candidates.push(path.join(r"bin\ffmpeg.exe").to_string_lossy().into_owned());
+                        if let Ok(sub_entries) = std::fs::read_dir(&path) {
+                            for sub in sub_entries.flatten() {
+                                let sub_path = sub.path();
+                                if sub_path.is_dir() {
+                                    candidates.push(sub_path.join("ffmpeg.exe").to_string_lossy().into_owned());
+                                    candidates.push(sub_path.join(r"bin\ffmpeg.exe").to_string_lossy().into_owned());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if let Some(appdata_dir) = appdata {
+        candidates.push(format!(r"{appdata_dir}\ffmpeg\bin\ffmpeg.exe"));
+        candidates.push(format!(r"{appdata_dir}\ffmpeg\ffmpeg.exe"));
+    }
+
+    if let Some(home) = userprofile {
+        candidates.push(home.join(r"scoop\apps\ffmpeg\current\bin\ffmpeg.exe").to_string_lossy().into_owned());
+        candidates.push(home.join(r"scoop\shims\ffmpeg.exe").to_string_lossy().into_owned());
+        candidates.push(home.join(r".local\bin\ffmpeg.exe").to_string_lossy().into_owned());
+    }
+
+    candidates.push(r"C:\Program Files\ffmpeg\bin\ffmpeg.exe".to_string());
+    candidates.push(r"C:\Program Files\FFmpeg\bin\ffmpeg.exe".to_string());
+    candidates.push(r"C:\Program Files (x86)\ffmpeg\bin\ffmpeg.exe".to_string());
+    candidates.push(r"C:\ProgramData\chocolatey\bin\ffmpeg.exe".to_string());
+    candidates.push(r"C:\ffmpeg\bin\ffmpeg.exe".to_string());
+    candidates.push(r"C:\ffmpeg\ffmpeg.exe".to_string());
+
+    candidates
+}
+
+pub fn windows_ffprobe_candidate_paths(
+    localappdata: Option<&str>,
+    appdata: Option<&str>,
+    userprofile: Option<&Path>,
+) -> Vec<String> {
+    let mut candidates = Vec::new();
+
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(parent) = exe_path.parent() {
+            for name in &["ffprobe.exe", r"ffmpeg\ffprobe.exe", r"ffmpeg\bin\ffprobe.exe", r"bin\ffprobe.exe"] {
+                candidates.push(parent.join(name).to_string_lossy().into_owned());
+            }
+        }
+    }
+    if let Ok(cwd) = std::env::current_dir() {
+        for name in &["ffprobe.exe", r"ffmpeg\ffprobe.exe", r"ffmpeg\bin\ffprobe.exe", r"bin\ffprobe.exe"] {
+            candidates.push(cwd.join(name).to_string_lossy().into_owned());
+        }
+    }
+
+    if let Some(local) = localappdata {
+        candidates.push(format!(r"{local}\Microsoft\WinGet\Links\ffprobe.exe"));
+        candidates.push(format!(r"{local}\Programs\ffmpeg\bin\ffprobe.exe"));
+        candidates.push(format!(r"{local}\Programs\ffmpeg\ffprobe.exe"));
+        candidates.push(format!(r"{local}\Programs\FFmpeg\bin\ffprobe.exe"));
+
+        let packages_dir = std::path::PathBuf::from(format!(r"{local}\Microsoft\WinGet\Packages"));
+        if packages_dir.is_dir() {
+            if let Ok(entries) = std::fs::read_dir(&packages_dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    let name = path
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("")
+                        .to_ascii_lowercase();
+                    if name.contains("ffmpeg") && path.is_dir() {
+                        candidates.push(path.join("ffprobe.exe").to_string_lossy().into_owned());
+                        candidates.push(path.join(r"bin\ffprobe.exe").to_string_lossy().into_owned());
+                        if let Ok(sub_entries) = std::fs::read_dir(&path) {
+                            for sub in sub_entries.flatten() {
+                                let sub_path = sub.path();
+                                if sub_path.is_dir() {
+                                    candidates.push(sub_path.join("ffprobe.exe").to_string_lossy().into_owned());
+                                    candidates.push(sub_path.join(r"bin\ffprobe.exe").to_string_lossy().into_owned());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if let Some(appdata_dir) = appdata {
+        candidates.push(format!(r"{appdata_dir}\ffmpeg\bin\ffprobe.exe"));
+        candidates.push(format!(r"{appdata_dir}\ffmpeg\ffprobe.exe"));
+    }
+
+    if let Some(home) = userprofile {
+        candidates.push(home.join(r"scoop\apps\ffmpeg\current\bin\ffprobe.exe").to_string_lossy().into_owned());
+        candidates.push(home.join(r"scoop\shims\ffprobe.exe").to_string_lossy().into_owned());
+        candidates.push(home.join(r".local\bin\ffprobe.exe").to_string_lossy().into_owned());
+    }
+
+    candidates.push(r"C:\Program Files\ffmpeg\bin\ffprobe.exe".to_string());
+    candidates.push(r"C:\Program Files\FFmpeg\bin\ffprobe.exe".to_string());
+    candidates.push(r"C:\Program Files (x86)\ffmpeg\bin\ffprobe.exe".to_string());
+    candidates.push(r"C:\ProgramData\chocolatey\bin\ffprobe.exe".to_string());
+    candidates.push(r"C:\ffmpeg\bin\ffprobe.exe".to_string());
+    candidates.push(r"C:\ffmpeg\ffprobe.exe".to_string());
+
+    candidates
+}
+
+pub fn windows_ytdlp_candidate_paths(
+    localappdata: Option<&str>,
+    appdata: Option<&str>,
+    userprofile: Option<&Path>,
+) -> Vec<String> {
+    let mut candidates = Vec::new();
+
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(parent) = exe_path.parent() {
+            for name in &["yt-dlp.exe", r"yt-dlp\yt-dlp.exe", r"bin\yt-dlp.exe"] {
+                candidates.push(parent.join(name).to_string_lossy().into_owned());
+            }
+        }
+    }
+    if let Ok(cwd) = std::env::current_dir() {
+        for name in &["yt-dlp.exe", r"yt-dlp\yt-dlp.exe", r"bin\yt-dlp.exe"] {
+            candidates.push(cwd.join(name).to_string_lossy().into_owned());
+        }
+    }
+
+    if let Some(local) = localappdata {
+        candidates.push(format!(r"{local}\Microsoft\WinGet\Links\yt-dlp.exe"));
+        candidates.push(format!(r"{local}\Programs\yt-dlp\yt-dlp.exe"));
+        candidates.push(format!(r"{local}\Programs\yt-dlp\bin\yt-dlp.exe"));
+
+        let packages_dir = std::path::PathBuf::from(format!(r"{local}\Microsoft\WinGet\Packages"));
+        if packages_dir.is_dir() {
+            if let Ok(entries) = std::fs::read_dir(&packages_dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    let name = path
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("")
+                        .to_ascii_lowercase();
+                    if name.contains("yt-dlp") && path.is_dir() {
+                        candidates.push(path.join("yt-dlp.exe").to_string_lossy().into_owned());
+                        candidates.push(path.join(r"bin\yt-dlp.exe").to_string_lossy().into_owned());
+                        if let Ok(sub_entries) = std::fs::read_dir(&path) {
+                            for sub in sub_entries.flatten() {
+                                let sub_path = sub.path();
+                                if sub_path.is_dir() {
+                                    candidates.push(sub_path.join("yt-dlp.exe").to_string_lossy().into_owned());
+                                    candidates.push(sub_path.join(r"bin\yt-dlp.exe").to_string_lossy().into_owned());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if let Some(appdata_dir) = appdata {
+        candidates.push(format!(r"{appdata_dir}\yt-dlp\yt-dlp.exe"));
+    }
+
+    if let Some(home) = userprofile {
+        candidates.push(home.join(r"scoop\apps\yt-dlp\current\yt-dlp.exe").to_string_lossy().into_owned());
+        candidates.push(home.join(r"scoop\shims\yt-dlp.exe").to_string_lossy().into_owned());
+        candidates.push(home.join(r".local\bin\yt-dlp.exe").to_string_lossy().into_owned());
+    }
+
+    candidates.push(r"C:\Program Files\yt-dlp\yt-dlp.exe".to_string());
+    candidates.push(r"C:\Program Files (x86)\yt-dlp\yt-dlp.exe".to_string());
+    candidates.push(r"C:\ProgramData\chocolatey\bin\yt-dlp.exe".to_string());
+    candidates.push(r"C:\yt-dlp\yt-dlp.exe".to_string());
+
+    candidates
+}
+
 fn probe_mpv() -> Option<String> {
     let mut candidates = Vec::new();
 
@@ -1270,6 +1492,130 @@ fn configured_executable(variable: &str) -> Option<String> {
     } else {
         None
     }
+}
+
+
+pub fn find_ffmpeg() -> Option<String> {
+    if let Ok(custom) = std::env::var("MOVIEBOX_FFMPEG_PATH") {
+        let trimmed = custom.trim();
+        if !trimmed.is_empty() && Path::new(trimmed).is_file() {
+            return Some(trimmed.to_string());
+        }
+    }
+    if let Some(path) = find_in_path("ffmpeg") {
+        return Some(path);
+    }
+    #[cfg(target_os = "windows")]
+    {
+        let localappdata = std::env::var("LOCALAPPDATA").ok();
+        let appdata = std::env::var("APPDATA").ok();
+        let home = dirs::home_dir();
+        for candidate in windows_ffmpeg_candidate_paths(
+            localappdata.as_deref(),
+            appdata.as_deref(),
+            home.as_deref(),
+        ) {
+            if Path::new(&candidate).is_file() {
+                return Some(candidate);
+            }
+        }
+    }
+    #[cfg(target_os = "macos")]
+    {
+        for candidate in &[
+            "/opt/homebrew/bin/ffmpeg",
+            "/usr/local/bin/ffmpeg",
+            "/opt/local/bin/ffmpeg",
+            "/usr/bin/ffmpeg",
+        ] {
+            if Path::new(candidate).is_file() {
+                return Some(candidate.to_string());
+            }
+        }
+    }
+    None
+}
+
+pub fn find_ffprobe() -> Option<String> {
+    if let Ok(custom) = std::env::var("MOVIEBOX_FFPROBE_PATH") {
+        let trimmed = custom.trim();
+        if !trimmed.is_empty() && Path::new(trimmed).is_file() {
+            return Some(trimmed.to_string());
+        }
+    }
+    if let Some(path) = find_in_path("ffprobe") {
+        return Some(path);
+    }
+    #[cfg(target_os = "windows")]
+    {
+        let localappdata = std::env::var("LOCALAPPDATA").ok();
+        let appdata = std::env::var("APPDATA").ok();
+        let home = dirs::home_dir();
+        for candidate in windows_ffprobe_candidate_paths(
+            localappdata.as_deref(),
+            appdata.as_deref(),
+            home.as_deref(),
+        ) {
+            if Path::new(&candidate).is_file() {
+                return Some(candidate);
+            }
+        }
+    }
+    #[cfg(target_os = "macos")]
+    {
+        for candidate in &[
+            "/opt/homebrew/bin/ffprobe",
+            "/usr/local/bin/ffprobe",
+            "/opt/local/bin/ffprobe",
+            "/usr/bin/ffprobe",
+        ] {
+            if Path::new(candidate).is_file() {
+                return Some(candidate.to_string());
+            }
+        }
+    }
+    None
+}
+
+pub fn find_ytdlp() -> Option<String> {
+    if let Ok(custom) = std::env::var("MOVIEBOX_YTDLP_PATH") {
+        let trimmed = custom.trim();
+        if !trimmed.is_empty() && Path::new(trimmed).is_file() {
+            return Some(trimmed.to_string());
+        }
+    }
+    if let Some(path) = find_in_path("yt-dlp") {
+        return Some(path);
+    }
+    #[cfg(target_os = "windows")]
+    {
+        let localappdata = std::env::var("LOCALAPPDATA").ok();
+        let appdata = std::env::var("APPDATA").ok();
+        let home = dirs::home_dir();
+        for candidate in windows_ytdlp_candidate_paths(
+            localappdata.as_deref(),
+            appdata.as_deref(),
+            home.as_deref(),
+        ) {
+            if Path::new(&candidate).is_file() {
+                return Some(candidate);
+            }
+        }
+    }
+    #[cfg(target_os = "macos")]
+    {
+        for candidate in &[
+            "/opt/homebrew/bin/yt-dlp",
+            "/usr/local/bin/yt-dlp",
+            "/opt/local/bin/yt-dlp",
+            "/usr/bin/yt-dlp",
+        ] {
+            if Path::new(candidate).is_file() {
+                return Some(candidate.to_string());
+            }
+        }
+    }
+    None
 }
 
 pub(crate) fn find_in_path(name: &str) -> Option<String> {
@@ -1692,5 +2038,31 @@ mod tests {
     #[test]
     fn test_create_no_window_constant() {
         assert_eq!(CREATE_NO_WINDOW, 0x0800_0000);
+    }
+
+    #[test]
+    fn test_windows_ffmpeg_and_ytdlp_candidate_paths() {
+        let home = PathBuf::from(r"C:\Users\TestUser");
+        let ffmpeg_candidates = windows_ffmpeg_candidate_paths(
+            Some(r"C:\Users\TestUser\AppData\Local"),
+            Some(r"C:\Users\TestUser\AppData\Roaming"),
+            Some(&home),
+        );
+        assert!(ffmpeg_candidates.iter().any(|c| c.contains("WinGet") && c.contains("ffmpeg.exe")));
+        assert!(ffmpeg_candidates.iter().any(|c| c.contains("Program Files") && c.contains("ffmpeg.exe")));
+
+        let ffprobe_candidates = windows_ffprobe_candidate_paths(
+            Some(r"C:\Users\TestUser\AppData\Local"),
+            Some(r"C:\Users\TestUser\AppData\Roaming"),
+            Some(&home),
+        );
+        assert!(ffprobe_candidates.iter().any(|c| c.contains("WinGet") && c.contains("ffprobe.exe")));
+
+        let ytdlp_candidates = windows_ytdlp_candidate_paths(
+            Some(r"C:\Users\TestUser\AppData\Local"),
+            Some(r"C:\Users\TestUser\AppData\Roaming"),
+            Some(&home),
+        );
+        assert!(ytdlp_candidates.iter().any(|c| c.contains("WinGet") && c.contains("yt-dlp.exe")));
     }
 }

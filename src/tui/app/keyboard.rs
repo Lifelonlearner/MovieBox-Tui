@@ -1694,7 +1694,7 @@ mod tests {
         app.handle_key(KeyEvent::new(KeyCode::Char('i'), KeyModifiers::empty()))
             .await;
         assert!(app.state.show_overview_modal);
-        assert_eq!(app.state.overview_modal_title, "Interstellar Â· Synopsis");
+        assert_eq!(app.state.overview_modal_title, "Interstellar \u{00b7} Synopsis");
         assert_eq!(app.state.overview_modal_content, "Space exploration epic.");
         assert_eq!(app.state.overview_modal_scroll, 0);
 

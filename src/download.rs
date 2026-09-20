@@ -700,7 +700,7 @@ fn parse_content_range(value: &str) -> Result<(u64, Option<u64>), DownloadError>
     Ok((start, total))
 }
 
-fn sidecar_path(destination: &Path, suffix: &str) -> PathBuf {
+pub(crate) fn sidecar_path(destination: &Path, suffix: &str) -> PathBuf {
     let mut name = destination.as_os_str().to_os_string();
     name.push(".");
     name.push(suffix);
@@ -764,6 +764,261 @@ async fn retry_delay(attempt: usize) {
     if attempt < MAX_ATTEMPTS {
         tokio::time::sleep(Duration::from_secs(1 << (attempt - 1))).await;
     }
+}
+
+
+pub fn ffmpeg_missing_guidance() -> String {
+    if crate::updater::artifact::is_termux_environment() {
+        "FFmpeg is required to merge video and audio streams. Please install it on your device (e.g. 'pkg install ffmpeg') to download and merge these streams.".to_string()
+    } else if cfg!(target_os = "macos") {
+        "FFmpeg is required to merge video and audio streams. Please install it on your Mac (e.g. 'brew install ffmpeg') to download and merge these streams.".to_string()
+    } else if cfg!(target_os = "windows") {
+        "FFmpeg is required to merge video and audio streams. Please install it on your system (e.g. 'winget install Gyan.FFmpeg') to download and merge these streams.".to_string()
+    } else if cfg!(target_os = "linux") {
+        "FFmpeg is required to merge video and audio streams. Please install ffmpeg via your system package manager (e.g. 'sudo apt install ffmpeg') to download and merge these streams.".to_string()
+    } else {
+        "FFmpeg is required to merge video and audio streams. Please install ffmpeg on your system to download and merge these streams.".to_string()
+    }
+}
+
+pub async fn probe_media_streams(file: &Path) -> (bool, bool) {
+    if !file.is_file() {
+        return (false, false);
+    }
+
+    if let Some(ffprobe_bin) = crate::player::find_ffprobe() {
+        let mut cmd = tokio::process::Command::new(ffprobe_bin);
+        cmd.args([
+            "-v",
+            "error",
+            "-show_entries",
+            "stream=codec_type",
+            "-of",
+            "default=noprint_wrappers=1:nokey=1",
+        ])
+        .arg(file);
+        #[cfg(target_os = "windows")]
+        cmd.creation_flags(crate::player::CREATE_NO_WINDOW);
+        if let Ok(output) = cmd.output().await {
+            let text = String::from_utf8_lossy(&output.stdout);
+            let has_video = text.lines().any(|l| l.trim().eq_ignore_ascii_case("video"));
+            let has_audio = text.lines().any(|l| l.trim().eq_ignore_ascii_case("audio"));
+            if has_video || has_audio {
+                return (has_video, has_audio);
+            }
+        }
+    }
+
+    if let Some(ffmpeg_bin) = crate::player::find_ffmpeg() {
+        let mut cmd = tokio::process::Command::new(ffmpeg_bin);
+        cmd.args(["-hide_banner", "-i"]).arg(file);
+        #[cfg(target_os = "windows")]
+        cmd.creation_flags(crate::player::CREATE_NO_WINDOW);
+        if let Ok(output) = cmd.output().await {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let has_video = stderr.contains("Video:") || stderr.contains(": Video");
+            let has_audio = stderr.contains("Audio:") || stderr.contains(": Audio");
+            if has_video || has_audio {
+                return (has_video, has_audio);
+            }
+        }
+    }
+
+    let filename = file
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    let is_video = filename.contains(".f0")
+        || filename.contains("video")
+        || filename.ends_with(".mp4")
+        || filename.ends_with(".mkv")
+        || filename.ends_with(".webm");
+    let is_audio = filename.contains(".f3")
+        || filename.contains("audio")
+        || filename.ends_with(".m4a")
+        || filename.ends_with(".aac")
+        || filename.ends_with(".opus")
+        || filename.ends_with(".mka");
+    (is_video, is_audio)
+}
+
+pub fn find_split_stream_files(target_dir: &Path, base_name: &str) -> Vec<PathBuf> {
+    let mut results = Vec::new();
+    let Ok(entries) = std::fs::read_dir(target_dir) else {
+        return results;
+    };
+    let base_lower = base_name.to_lowercase();
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+        let filename = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("")
+            .to_string();
+        let name_lower = filename.to_lowercase();
+        if !name_lower.starts_with(&base_lower) {
+            continue;
+        }
+        if name_lower.ends_with(".srt")
+            || name_lower.ends_with(".vtt")
+            || name_lower.ends_with(".ass")
+            || name_lower.ends_with(".ssa")
+            || name_lower.ends_with(".sub")
+            || name_lower.ends_with(".json")
+            || name_lower.ends_with(".metadata")
+            || name_lower.ends_with(".assembling")
+            || name_lower.ends_with(".merging.mp4")
+        {
+            continue;
+        }
+        results.push(path);
+    }
+    results
+}
+
+pub async fn merge_streams_with_ffmpeg(
+    video_file: &Path,
+    audio_file: &Path,
+    destination: &Path,
+) -> Result<(), String> {
+    let Some(ffmpeg_bin) = crate::player::find_ffmpeg() else {
+        return Err(ffmpeg_missing_guidance());
+    };
+
+    let temp_merged = sidecar_path(destination, "merging.mp4");
+    if temp_merged.exists() {
+        let _ = tokio::fs::remove_file(&temp_merged).await;
+    }
+
+    let mut cmd = tokio::process::Command::new(ffmpeg_bin);
+    cmd.arg("-y")
+        .arg("-i")
+        .arg(video_file)
+        .arg("-i")
+        .arg(audio_file)
+        .arg("-map")
+        .arg("0:v:0")
+        .arg("-map")
+        .arg("1:a:0")
+        .arg("-c")
+        .arg("copy")
+        .arg("-movflags")
+        .arg("+faststart")
+        .arg(&temp_merged);
+
+    #[cfg(target_os = "windows")]
+    cmd.creation_flags(crate::player::CREATE_NO_WINDOW);
+
+    let output = cmd
+        .output()
+        .await
+        .map_err(|e| format!("Failed to spawn FFmpeg: {e}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let _ = tokio::fs::remove_file(&temp_merged).await;
+        return Err(format!("FFmpeg merge failed: {stderr}"));
+    }
+
+    let size = file_len(&temp_merged).await;
+    if size == 0 {
+        let _ = tokio::fs::remove_file(&temp_merged).await;
+        return Err("Merged file is empty (0 bytes)".to_string());
+    }
+
+    let (has_video, has_audio) = probe_media_streams(&temp_merged).await;
+    if !has_video || !has_audio {
+        let _ = tokio::fs::remove_file(&temp_merged).await;
+        return Err(format!(
+            "Merged file validation failed (has_video={has_video}, has_audio={has_audio})"
+        ));
+    }
+
+    if tokio::fs::rename(&temp_merged, destination).await.is_err() {
+        let _ = tokio::fs::remove_file(destination).await;
+        tokio::fs::rename(&temp_merged, destination)
+            .await
+            .map_err(|e| format!("Failed to move merged file to destination: {e}"))?;
+    }
+
+    // Safely remove split files only after successful merge and validation
+    let _ = tokio::fs::remove_file(video_file).await;
+    let _ = tokio::fs::remove_file(audio_file).await;
+
+    Ok(())
+}
+
+pub async fn post_process_download(
+    target_dir: &Path,
+    base_name: &str,
+    destination: &Path,
+) -> Result<PathBuf, String> {
+    if destination.is_file() && file_len(destination).await > 0 {
+        let (v, a) = probe_media_streams(destination).await;
+        if v && a {
+            for file in find_split_stream_files(target_dir, base_name) {
+                if file != destination {
+                    let _ = tokio::fs::remove_file(file).await;
+                }
+            }
+            return Ok(destination.to_path_buf());
+        }
+    }
+
+    let split_files = find_split_stream_files(target_dir, base_name);
+    let mut video_candidates = Vec::new();
+    let mut audio_candidates = Vec::new();
+
+    for file in split_files {
+        let (v, a) = probe_media_streams(&file).await;
+        if v && a {
+            if file != destination {
+                if tokio::fs::rename(&file, destination).await.is_err() {
+                    let _ = tokio::fs::remove_file(destination).await;
+                    tokio::fs::rename(&file, destination)
+                        .await
+                        .map_err(|e| format!("Failed to rename valid stream to destination: {e}"))?;
+                }
+            }
+            return Ok(destination.to_path_buf());
+        }
+        if v {
+            video_candidates.push(file.clone());
+        }
+        if a {
+            audio_candidates.push(file);
+        }
+    }
+
+    if let (Some(video_file), Some(audio_file)) = (video_candidates.first(), audio_candidates.first()) {
+        merge_streams_with_ffmpeg(video_file, audio_file, destination).await?;
+        return Ok(destination.to_path_buf());
+    }
+
+    if destination.is_file() && file_len(destination).await > 0 {
+        return Ok(destination.to_path_buf());
+    }
+
+    if let Some(video_file) = video_candidates.first() {
+        if video_file != destination {
+            if tokio::fs::rename(video_file, destination).await.is_err() {
+                let _ = tokio::fs::remove_file(destination).await;
+                tokio::fs::rename(video_file, destination)
+                    .await
+                    .map_err(|e| format!("Failed to rename stream file: {e}"))?;
+            }
+        }
+        return Ok(destination.to_path_buf());
+    }
+
+    Err(format!(
+        "Download output file was not found: {}",
+        destination.display()
+    ))
 }
 
 #[cfg(test)]
@@ -860,6 +1115,99 @@ mod tests {
             tokio::fs::read_to_string(&destination).await.unwrap(),
             "new version"
         );
+        let _ = tokio::fs::remove_dir_all(&dir).await;
+    }
+
+    #[test]
+    fn test_ffmpeg_missing_guidance_contains_platform_hint() {
+        let guidance = ffmpeg_missing_guidance();
+        assert!(guidance.contains("FFmpeg is required"));
+    }
+
+    #[test]
+    fn test_find_split_stream_files_filters_subtitles_and_metadata() {
+        let dir = std::env::temp_dir().join(format!(
+            "mbx_test_split_{}_{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let base_name = "India's Got Talent - S01E01";
+        let vid_file = dir.join(format!("{base_name}.f0"));
+        let aud_file = dir.join(format!("{base_name}.f3"));
+        let srt_file = dir.join(format!("{base_name}.en.srt"));
+        let json_file = dir.join(format!("{base_name}.mp4.part.json"));
+
+        std::fs::write(&vid_file, b"video_data").unwrap();
+        std::fs::write(&aud_file, b"audio_data").unwrap();
+        std::fs::write(&srt_file, b"1\n00:00:00 --> 00:00:01\nHi").unwrap();
+        std::fs::write(&json_file, b"{}").unwrap();
+
+        let split = find_split_stream_files(&dir, base_name);
+        assert_eq!(split.len(), 2);
+        assert!(split.contains(&vid_file));
+        assert!(split.contains(&aud_file));
+        assert!(!split.contains(&srt_file));
+        assert!(!split.contains(&json_file));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[tokio::test]
+    async fn test_ffmpeg_merge_streams_integration() {
+        let Some(ffmpeg_bin) = crate::player::find_ffmpeg() else {
+            return;
+        };
+
+        let dir = std::env::temp_dir().join(format!(
+            "mbx_test_merge_{}_{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_nanos()
+        ));
+        tokio::fs::create_dir_all(&dir).await.unwrap();
+
+        let base_name = "India's Got Talent - S01E01";
+        let vid_file = dir.join(format!("{base_name}.f0.mp4"));
+        let aud_file = dir.join(format!("{base_name}.f3.m4a"));
+        let dest_file = dir.join(format!("{base_name}.mp4"));
+
+        // Generate 1s test video stream
+        let mut v_cmd = tokio::process::Command::new(&ffmpeg_bin);
+        v_cmd.args(["-y", "-f", "lavfi", "-i", "testsrc=duration=1:size=320x240:rate=10", "-c:v", "libx264", "-pix_fmt", "yuv420p"])
+            .arg(&vid_file);
+        #[cfg(target_os = "windows")]
+        v_cmd.creation_flags(crate::player::CREATE_NO_WINDOW);
+        assert!(v_cmd.output().await.unwrap().status.success());
+
+        // Generate 1s test audio stream
+        let mut a_cmd = tokio::process::Command::new(&ffmpeg_bin);
+        a_cmd.args(["-y", "-f", "lavfi", "-i", "sine=frequency=1000:duration=1", "-c:a", "aac"])
+            .arg(&aud_file);
+        #[cfg(target_os = "windows")]
+        a_cmd.creation_flags(crate::player::CREATE_NO_WINDOW);
+        assert!(a_cmd.output().await.unwrap().status.success());
+
+        assert!(vid_file.exists());
+        assert!(aud_file.exists());
+
+        let res = post_process_download(&dir, base_name, &dest_file).await;
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), dest_file);
+        assert!(dest_file.exists());
+
+        let (has_v, has_a) = probe_media_streams(&dest_file).await;
+        assert!(has_v, "Merged file must have video stream");
+        assert!(has_a, "Merged file must have audio stream");
+
+        assert!(!vid_file.exists(), "Temporary video format file must be cleaned up");
+        assert!(!aud_file.exists(), "Temporary audio format file must be cleaned up");
+
         let _ = tokio::fs::remove_dir_all(&dir).await;
     }
 }
