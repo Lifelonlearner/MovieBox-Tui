@@ -73,8 +73,10 @@ pub fn should_query_images() -> bool {
     }
     #[cfg(target_os = "windows")]
     {
-        let is_modern_terminal = std::env::var("WT_SESSION").is_ok()
-            || std::env::var("TERM_PROGRAM").is_ok()
+        // Windows Terminal (WT_SESSION) does not handle stdio graphics capability queries cleanly
+        // and leaks unhandled DA responses (e.g. D62MT, ?62;4;22c) into the input stream,
+        // corrupting text layout unless a specific protocol is forced via MOVIEBOX_IMAGE_PROTOCOL.
+        let is_modern_terminal = std::env::var("TERM_PROGRAM").is_ok()
             || std::env::var("ALACRITTY_LOG").is_ok()
             || std::env::var("WEZTERM_EXECUTABLE").is_ok()
             || std::env::var("GHOSTTY_RESOURCES_DIR").is_ok();
