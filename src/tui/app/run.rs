@@ -149,11 +149,7 @@ impl App {
                 self.state.image_picker = None;
                 return;
             }
-            Some(ForcedProtocol::Type(ProtocolType::Halfblocks)) => {
-                self.state.image_supported = false;
-                self.state.image_picker = None;
-                return;
-            }
+
             Some(ForcedProtocol::Type(protocol)) => {
                 let font_size = Self::cell_size_override().unwrap_or(ratatui_image::FontSize {
                     width: 10,
@@ -225,7 +221,10 @@ impl App {
             }
         }
 
-        if matches!(picker.protocol_type(), ProtocolType::Halfblocks) {
+        if matches!(picker.protocol_type(), ProtocolType::Halfblocks)
+            && (crate::tui::terminal::uses_basic_ui()
+                || std::env::var("MOVIEBOX_NO_IMAGE").is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true")))
+        {
             self.state.image_supported = false;
             self.state.image_picker = None;
             return;
@@ -266,7 +265,9 @@ impl App {
             .as_str()
         {
             "none" | "off" | "false" => Some(ForcedProtocol::None),
-
+            "halfblocks" | "halfblock" | "unicode" | "blocks" => Some(ForcedProtocol::Type(
+                ratatui_image::picker::ProtocolType::Halfblocks,
+            )),
             "sixel" => Some(ForcedProtocol::Type(
                 ratatui_image::picker::ProtocolType::Sixel,
             )),
