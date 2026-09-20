@@ -221,10 +221,7 @@ impl App {
             }
         }
 
-        if matches!(picker.protocol_type(), ProtocolType::Halfblocks)
-            && (crate::tui::terminal::uses_basic_ui()
-                || std::env::var("MOVIEBOX_NO_IMAGE").is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true")))
-        {
+        if matches!(picker.protocol_type(), ProtocolType::Halfblocks) {
             self.state.image_supported = false;
             self.state.image_picker = None;
             return;
