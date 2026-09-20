@@ -221,7 +221,10 @@ impl App {
             }
         }
 
-        if matches!(picker.protocol_type(), ProtocolType::Halfblocks) {
+        if matches!(picker.protocol_type(), ProtocolType::Halfblocks)
+            && (crate::tui::terminal::uses_basic_ui()
+                || std::env::var("MOVIEBOX_NO_IMAGE").is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true")))
+        {
             self.state.image_supported = false;
             self.state.image_picker = None;
             return;
@@ -232,7 +235,9 @@ impl App {
     fn accept_picker(&mut self, picker: ratatui_image::picker::Picker) {
         let cell_h = picker.font_size().height;
         if cell_h > 0 {
-            self.state.poster_rows = (96_u16.div_ceil(cell_h)).max(3);
+            self.state.poster_rows = (96_u16.div_ceil(cell_h)).clamp(4, 6);
+        } else {
+            self.state.poster_rows = 5;
         }
 
         self.state.image_picker = Some(picker);

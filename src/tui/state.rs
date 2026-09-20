@@ -403,9 +403,11 @@ impl Default for AppState {
 
             poster_protocol: None,
             image_picker: None,
-            image_supported: crate::tui::terminal::should_query_images(),
+            image_supported: !crate::tui::terminal::uses_basic_ui()
+                && !std::env::var("MOVIEBOX_NO_IMAGE")
+                    .is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true")),
             clear_terminal_before_draw: false,
-            poster_rows: 3,
+            poster_rows: 5,
             image_cache: lru::LruCache::new(cache_capacity(10)),
             show_help: false,
             help_scroll: 0,
