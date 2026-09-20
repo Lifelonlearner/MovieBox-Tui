@@ -1,4 +1,4 @@
-﻿use super::App;
+use super::App;
 use crate::tui::{
     action::Action,
     state::{InputMode, Screen},

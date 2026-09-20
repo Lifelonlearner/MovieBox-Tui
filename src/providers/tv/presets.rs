@@ -1,4 +1,4 @@
-﻿pub struct PresetPlaylist {
+pub struct PresetPlaylist {
     pub name: &'static str,
     pub description: &'static str,
     pub url: &'static str,

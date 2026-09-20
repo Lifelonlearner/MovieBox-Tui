@@ -1,4 +1,4 @@
-﻿pub mod tracker;
+pub mod tracker;
 
 use std::{path::Path, process::Command};
 

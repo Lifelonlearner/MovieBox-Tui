@@ -1,4 +1,4 @@
-﻿use moviebox_tui::tui::app::App;
+use moviebox_tui::tui::app::App;
 
 #[cfg(not(target_os = "android"))]
 #[global_allocator]
