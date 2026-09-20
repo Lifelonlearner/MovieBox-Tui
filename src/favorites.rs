@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+﻿use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -118,6 +118,9 @@ impl FavoritesManager {
     }
 
     pub fn save(&self) {
+        if std::env::var("MOVIEBOX_INCOGNITO").is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true")) {
+            return;
+        }
         if let Some(path) = Self::favorites_file_path() {
             self.save_to_path(&path);
         }

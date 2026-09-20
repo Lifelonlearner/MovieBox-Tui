@@ -1,4 +1,4 @@
-use moviebox_tui::tui::app::App;
+﻿use moviebox_tui::tui::app::App;
 
 #[cfg(not(target_os = "android"))]
 #[global_allocator]
@@ -109,6 +109,12 @@ async fn main() -> std::io::Result<()> {
     {
         println!("moviebox-tui {}", env!("CARGO_PKG_VERSION"));
         return Ok(());
+    }
+
+    if args.iter().any(|arg| arg == "--incognito" || arg == "-i") {
+        unsafe {
+            std::env::set_var("MOVIEBOX_INCOGNITO", "1");
+        }
     }
 
     moviebox_tui::logging::init();

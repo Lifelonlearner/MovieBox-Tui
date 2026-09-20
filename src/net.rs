@@ -1,4 +1,4 @@
-use std::net::SocketAddr;
+﻿use std::net::SocketAddr;
 use std::sync::Arc;
 
 use hickory_resolver::TokioResolver;
@@ -91,6 +91,25 @@ pub async fn probe_url(url: &str, timeout: std::time::Duration) -> bool {
     }
     if let Ok(resp) = client.get(url).send().await {
         return resp.status().is_success() || resp.status().is_redirection();
+    }
+    false
+}
+
+pub fn is_vpn_active() -> bool {
+    #[cfg(target_os = "windows")]
+    {
+        if let Ok(output) = std::process::Command::new("netsh")
+            .args(["interface", "show", "interface"])
+            .output()
+        {
+            let text = String::from_utf8_lossy(&output.stdout).to_lowercase();
+            return text.contains("surfshark")
+                || text.contains("wireguard")
+                || text.contains("openvpn")
+                || text.contains("tap-windows")
+                || text.contains("nordlynx")
+                || text.contains("vpn");
+        }
     }
     false
 }

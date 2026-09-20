@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+﻿use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fs;
 use std::path::PathBuf;
@@ -102,7 +102,7 @@ impl WatchHistoryItem {
             0
         };
         let empty = width.saturating_sub(filled);
-        ("━".repeat(filled), "─".repeat(empty))
+        ("â”".repeat(filled), "â”€".repeat(empty))
     }
 
     pub fn progress_bar(&self, width: usize) -> String {
@@ -280,6 +280,9 @@ impl HistoryManager {
     }
 
     pub fn save(&self) {
+        if std::env::var("MOVIEBOX_INCOGNITO").is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true")) {
+            return;
+        }
         if let Some(path) = Self::history_file_path() {
             if let Ok(content) = serde_json::to_string(self) {
                 if let Err(error) = crate::cache::atomic_write_file(&path, content.as_bytes()) {
